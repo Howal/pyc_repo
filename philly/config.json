@@ -1,0 +1,30 @@
+{
+    "ClusterId": "wu1",
+    "VcId": "resrchvc",
+    "JobName": "pose-ae",
+    "UserName": "v-zhuyao",
+    "BuildId": 0,
+    "ToolType": null,
+    "ConfigFile": "/hdfs/resrchvc/v-zhuyao/run_on_philly.py",
+    "Inputs": [
+        {
+            "name": "dataDir",
+            "Path": "/hdfs/resrchvc/v-zhuyao"
+        }
+    ],
+    "Outputs": [],
+    "IsDebug": true,
+    "RackId": "anyConnected",
+    "MinGPUs": 4,
+    "PrevModelPath": null,
+    "ExtraParams": "--auth xxxx --repo Howal/pose-mxnet --branch master --workDir pose-ae --execute-file ./pose-ae/train_end2end.py --cfg ./cfgs/pose-ae/resnet_v1_50_coco_e2e_baseline_8ep.yaml",
+    "SubmitCode": "p1",
+    "IsMemCheck": false,
+    "IsCrossRack": false,
+    "Registry": "phillyregistry.azurecr.io",
+    "Repository": "philly/jobs/test/mxnet",
+    "Tag": "v131_py27_cuda9_zeliu",
+    "OneProcessPerContainer": true,
+    "NumOfContainers": "1",
+    "DynamicContainerSize": false
+}

@@ -289,6 +289,13 @@ def frPyObjects(pyobj, siz h, w):
         objs = frPoly(pyobj, h, w )
     elif type(pyobj) == list and type(pyobj[0]) == dict:
         objs = frUncompressedRLE(pyobj, h, w)
+    # encode rle from single python object
+    elif type(pyobj) == list and len(pyobj) == 4:
+        objs = frBbox([pyobj], h, w)[0]
+    elif type(pyobj) == list and len(pyobj) > 4:
+        objs = frPoly([pyobj], h, w)[0]
+    elif type(pyobj) == dict and 'counts' in pyobj and 'size' in pyobj:
+        objs = frUncompressedRLE([pyobj], h, w)[0]
     else:
         raise Exception('input type is not supported.')
     return objs
