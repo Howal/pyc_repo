@@ -18,7 +18,7 @@ pose_aug:
   - 128
 
 network:
-  pretrained: "./model/resnet101_huhan/resnet_huhan_101"
+  pretrained: "/hdfs/resrchvc/v-zhuyao/model/resnet101_huhan/resnet_huhan_101"
   pretrained_epoch: 0
   PIXEL_MEANS:
   - 103.06
@@ -44,7 +44,7 @@ dataset:
   use_zip: true
   ignore_posedb_cache: false
   dataset: coco_pose
-  dataset_path: "./data/coco"
+  dataset_path: "/hdfs/resrchvc/v-zhuyao/data/coco"
   image_set: train
 #  image_set: test_dev, test_std
   root_path: "./"

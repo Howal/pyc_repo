@@ -18,7 +18,7 @@ pose_aug:
   - 128
 
 network:
-  pretrained: "./model/resnet101_huhan/resnet_huhan_101"
+  pretrained: "/hdfs/resrchvc/v-zhuyao/model/resnet101_huhan/resnet_huhan_101"
   pretrained_epoch: 0
   PIXEL_MEANS:
   - 103.06
@@ -44,7 +44,7 @@ dataset:
   use_zip: true
   ignore_posedb_cache: false
   dataset: coco_pose
-  dataset_path: "./data/coco"
+  dataset_path: "/hdfs/resrchvc/v-zhuyao/data/coco"
   image_set: train
 #  image_set: test_dev, test_std
   root_path: "./"
@@ -54,7 +54,7 @@ dataset:
 
 TRAIN:
   lr: 0.000025
-  lr_step: '3, 4.5'
+  lr_step: '9, 13.5'
   lr_factor: 0.2
   warmup: false
   warmup_lr: 0.0
@@ -63,7 +63,7 @@ TRAIN:
   warmup_step: 500
   wd: 0.0
   begin_epoch: 0
-  end_epoch: 6
+  end_epoch: 18
   model_prefix: 'pose_coco'
   # whether resume training
   AUTO_RESUME: false
@@ -95,5 +95,5 @@ TEST:
   PROPOSAL_MIN_SIZE: 0
   # RCNN nms
   NMS: 0.5
-  test_epoch: 6
+  test_epoch: 18
   max_per_image: 100
