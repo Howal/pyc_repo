@@ -30,8 +30,8 @@ network:
   - 58.395
   IMAGE_STRIDE: 0
   FIXED_PARAMS:
-#  - conv0
-#  - bn_conv0
+  - conv0
+  - bn_conv0
 #  - stage1
 #  - stage2
 #  - stage3
