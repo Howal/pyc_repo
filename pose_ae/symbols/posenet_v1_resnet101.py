@@ -47,8 +47,8 @@ class posenet_v1_resnet101(Symbol):
             data = mx.sym.Deconvolution(data=data, num_filter=256, kernel=(4, 4), stride=(2, 2),
                                         no_bias=False, target_shape=(feat_h / _stage_scale, feat_w / _stage_scale),
                                         name=prefix + '_deconv')
-            data = mx.sym.BatchNorm(data=data, use_global_stats=bn_use_global_stats, fix_gamma=False, eps=2e-5,
-                                    momentum=0.9, name=prefix + '_bn')
+            # data = mx.sym.BatchNorm(data=data, use_global_stats=bn_use_global_stats, fix_gamma=False, eps=2e-5,
+            #                         momentum=0.9, name=prefix + '_bn')
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu')
 
         preds = mx.sym.Convolution(data=data, num_filter=num_parts * 2, kernel=(1, 1), stride=(1, 1),
@@ -133,9 +133,9 @@ class posenet_v1_resnet101(Symbol):
             a_loss_outside = 0.5 * mx.symbol.mean(data=tmp_a_loss_outside, axis=0)  # shape, [1]
 
             # mask Loss
-            d_loss = mx.sym.MakeLoss(name='detection_loss', data=d_loss, grad_scale=1.0)
-            a_loss_inside = mx.sym.MakeLoss(name='association_loss_inside', data=a_loss_inside, grad_scale=0.001)
-            a_loss_outside = mx.sym.MakeLoss(name='association_loss_outside', data=a_loss_outside, grad_scale=0.001)
+            d_loss = mx.sym.MakeLoss(name='detection_loss', data=d_loss, grad_scale=cfg.TRAIN.d_loss)
+            a_loss_inside = mx.sym.MakeLoss(name='association_loss_inside', data=a_loss_inside, grad_scale=cfg.TRAIN.a_loss_in)
+            a_loss_outside = mx.sym.MakeLoss(name='association_loss_outside', data=a_loss_outside, grad_scale=cfg.TRAIN.a_loss_out)
 
             output_list = [d_loss, a_loss_inside, a_loss_outside]
 
@@ -186,10 +186,10 @@ class posenet_v1_resnet101(Symbol):
             arg_params[prefix + '_deconv_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
             arg_params[prefix + '_deconv_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_deconv_bias'])
 
-            arg_params[prefix + '_bn_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn_gamma'])
-            arg_params[prefix + '_bn_beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn_beta'])
-            aux_params[prefix + '_bn_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn_moving_mean'])
-            aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
+            # arg_params[prefix + '_bn_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn_gamma'])
+            # arg_params[prefix + '_bn_beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn_beta'])
+            # aux_params[prefix + '_bn_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn_moving_mean'])
+            # aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
 
         # pytorch's kaiming_uniform_
         weight_shape = self.arg_shape_dict['simple_baseline_preds_weight']

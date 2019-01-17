@@ -9,7 +9,7 @@ frequent: 10
 kvstore: device
 
 pose_aug:
-  AUG_TYPE: 'AE'
+  AUG_TYPE: 'OUR_W_RC_WO_JIT'
   SCALES:
   - 512
   - 512
@@ -35,8 +35,8 @@ network:
 #  - stage1
 #  - stage2
 #  - stage3
-#  - gamma
-#  - beta
+  - gamma
+  - beta
   FIXED_PARAMS_SHARED:
   use_bn_type: False
 
@@ -53,17 +53,21 @@ dataset:
   MAX_PERSONS: 30
 
 TRAIN:
-  lr: 0.000025
-  lr_step: '12, 18'
-  lr_factor: 0.2
-  warmup: false
+  optimizer: 'sgd'
+  d_loss: 1.0
+  a_loss_in: 0.001
+  a_loss_out: 0.001
+  lr: 0.002
+  lr_step: '13.75, 19.25'
+  lr_factor: 0.1
+  warmup: true
   warmup_lr: 0.0
   warmup_method: 'linear'
   # typically we will use 8000 warmup step for single GPU for COCO
   warmup_step: 500
-  wd: 0.0
+  wd: 0.0001
   begin_epoch: 0
-  end_epoch: 24
+  end_epoch: 22
   model_prefix: 'pose_coco'
   # whether resume training
   AUTO_RESUME: false
@@ -95,5 +99,5 @@ TEST:
   PROPOSAL_MIN_SIZE: 0
   # RCNN nms
   NMS: 0.5
-  test_epoch: 24
+  test_epoch: 22
   max_per_image: 100

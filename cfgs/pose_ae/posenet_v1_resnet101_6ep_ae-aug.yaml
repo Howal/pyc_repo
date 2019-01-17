@@ -9,7 +9,7 @@ frequent: 10
 kvstore: device
 
 pose_aug:
-  AUG_TYPE: 'AE'
+  AUG_TYPE: 'OUR_W_RC_WO_JIT'
   SCALES:
   - 512
   - 512
@@ -35,8 +35,8 @@ network:
 #  - stage1
 #  - stage2
 #  - stage3
-#  - gamma
-#  - beta
+  - gamma
+  - beta
   FIXED_PARAMS_SHARED:
   use_bn_type: False
 
@@ -53,6 +53,10 @@ dataset:
   MAX_PERSONS: 30
 
 TRAIN:
+  optimizer: 'adam'
+  d_loss: 1.0
+  a_loss_in: 0.001
+  a_loss_out: 0.001
   lr: 0.000025
   lr_step: '3, 4.5'
   lr_factor: 0.2

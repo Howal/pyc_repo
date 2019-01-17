@@ -9,7 +9,7 @@ frequent: 10
 kvstore: device
 
 pose_aug:
-  AUG_TYPE: 'AE'
+  AUG_TYPE: 'OUR_W_RC_WO_JIT'
   SCALES:
   - 512
   - 512
@@ -35,8 +35,8 @@ network:
 #  - stage1
 #  - stage2
 #  - stage3
-#  - gamma
-#  - beta
+  - gamma
+  - beta
   FIXED_PARAMS_SHARED:
   use_bn_type: False
 
