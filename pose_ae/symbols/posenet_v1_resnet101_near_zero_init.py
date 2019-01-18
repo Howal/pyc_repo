@@ -8,7 +8,7 @@ from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 
-class posenet_v1_resnet50(Symbol):
+class posenet_v1_resnet101(Symbol):
     def __init__(self, FP16=False):
         """
         Use __init__ to define parameter network needs
@@ -35,7 +35,7 @@ class posenet_v1_resnet50(Symbol):
             data = mx.sym.Variable(name="data")  # img, [N, 3, H ,W]
             bn_use_global_stats = True
 
-        _, _, _, _, c5 = resnet_v1.get_resnet_backbone(data=data, num_layers=50,
+        _, _, _, _, c5 = resnet_v1.get_resnet_backbone(data=data, num_layers=101,
                                                        use_dilation_on_c5=False,
                                                        use_dconv=False, dconv_lr_mult=0.001, dconv_group=1, dconv_start_channel=512,
                                                        bn_mom=0.9)
@@ -47,19 +47,17 @@ class posenet_v1_resnet50(Symbol):
             data = mx.sym.Deconvolution(data=data, num_filter=256, kernel=(4, 4), stride=(2, 2),
                                         no_bias=False, target_shape=(feat_h / _stage_scale, feat_w / _stage_scale),
                                         name=prefix + '_deconv')
-            data = mx.sym.BatchNorm(data=data, use_global_stats=bn_use_global_stats, fix_gamma=False, eps=2e-5,
-                                    momentum=0.9, name=prefix + '_bn')
+            # data = mx.sym.BatchNorm(data=data, use_global_stats=bn_use_global_stats, fix_gamma=False, eps=2e-5,
+            #                         momentum=0.9, name=prefix + '_bn')
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu')
 
-        preds = mx.sym.Convolution(data=data, num_filter=num_parts * 2, kernel=(1, 1), stride=(1, 1),
-                                   no_bias=False, name='simple_baseline_preds')
+        d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
+                                   no_bias=False, name='simple_baseline_d_preds')  # shape, [N, num_parts, H, W]
+        a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
+                                   no_bias=False, name='simple_baseline_a_preds')  # shape, [N, num_parts, H, W]
 
         # calc_loss
         if is_train:
-            # slice into two parts
-            d_preds = mx.sym.slice_axis(data=preds, axis=1, begin=0, end=num_parts)  # shape, [N, num_parts, H, W]
-            a_preds = mx.sym.slice_axis(data=preds, axis=1, begin=num_parts, end=2 * num_parts)  # shape, [N, num_parts, H, W]
-
             # calc detection loss
             tmp_d_loss = mx.symbol.square(data=(d_preds - heatmaps))
             masks_expand = mx.symbol.expand_dims(masks, axis=1)
@@ -129,13 +127,13 @@ class posenet_v1_resnet50(Symbol):
             tmp_a_loss_outside = mx.symbol.sum(tmp_a_loss_outside * tmp_a_loss_outside_scale, axis=1)  # shape, [N]
 
             # stack all stage
-            a_loss_inside = mx.symbol.mean(data=tmp_a_loss_inside, axis=0)  # shape, [1]
-            a_loss_outside = 0.5 * mx.symbol.mean(data=tmp_a_loss_outside, axis=0)  # shape, [1]
+            tmp_a_loss_inside = mx.symbol.mean(data=tmp_a_loss_inside, axis=0)  # shape, [1]
+            tmp_a_loss_outside = 0.5 * mx.symbol.mean(data=tmp_a_loss_outside, axis=0)  # shape, [1]
 
             # mask Loss
-            d_loss = mx.sym.MakeLoss(name='detection_loss', data=d_loss, grad_scale=1.0)
-            a_loss_inside = mx.sym.MakeLoss(name='association_loss_inside', data=a_loss_inside, grad_scale=0.001)
-            a_loss_outside = mx.sym.MakeLoss(name='association_loss_outside', data=a_loss_outside, grad_scale=0.001)
+            d_loss = mx.sym.MakeLoss(name='detection_loss', data=d_loss, grad_scale=cfg.TRAIN.d_loss)
+            a_loss_inside = mx.sym.MakeLoss(name='association_loss_inside', data=tmp_a_loss_inside, grad_scale=cfg.TRAIN.a_loss_in)
+            a_loss_outside = mx.sym.MakeLoss(name='association_loss_outside', data=tmp_a_loss_outside, grad_scale=cfg.TRAIN.a_loss_out)
 
             output_list = [d_loss, a_loss_inside, a_loss_outside]
 
@@ -152,7 +150,7 @@ class posenet_v1_resnet50(Symbol):
 
             group = mx.sym.Group(output_list)
         else:
-            group = mx.sym.Group([preds])
+            group = mx.sym.Group([d_preds, a_preds])
 
         self.sym = group
         return group
@@ -173,7 +171,7 @@ class posenet_v1_resnet50(Symbol):
             pred_names = ['d_loss', 'a_loss_inside', 'a_loss_outside']
 
     def get_label_names(self):
-        return ['preds']
+        return ['d_preds, a_preds']
 
     def init_weight_simple_baseline(self, cfg, arg_params, aux_params):
 
@@ -186,17 +184,21 @@ class posenet_v1_resnet50(Symbol):
             arg_params[prefix + '_deconv_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
             arg_params[prefix + '_deconv_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_deconv_bias'])
 
-            arg_params[prefix + '_bn_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn_gamma'])
-            arg_params[prefix + '_bn_beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn_beta'])
-            aux_params[prefix + '_bn_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn_moving_mean'])
-            aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
+            # arg_params[prefix + '_bn_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn_gamma'])
+            # arg_params[prefix + '_bn_beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn_beta'])
+            # aux_params[prefix + '_bn_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn_moving_mean'])
+            # aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
 
         # pytorch's kaiming_uniform_
-        weight_shape = self.arg_shape_dict['simple_baseline_preds_weight']
+        weight_shape = self.arg_shape_dict['simple_baseline_d_preds_weight']
         fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['simple_baseline_preds_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['simple_baseline_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_preds_bias'])
+        arg_params['simple_baseline_d_preds_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        arg_params['simple_baseline_d_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_bias'])
+
+        # a_preds branch's init
+        arg_params['simple_baseline_a_preds_weight'] = mx.random.uniform(-0.00001, 0.00001, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
+        arg_params['simple_baseline_a_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
 
         '''
         # ones/zero for debug

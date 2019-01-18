@@ -8,7 +8,7 @@ from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 
-class posenet_v1_resnet101(Symbol):
+class posenet_v1_resnet101_detect_init(Symbol):
     def __init__(self, FP16=False):
         """
         Use __init__ to define parameter network needs
@@ -195,12 +195,10 @@ class posenet_v1_resnet101(Symbol):
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
         arg_params['simple_baseline_d_preds_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
         arg_params['simple_baseline_d_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_bias'])
-        arg_params['simple_baseline_a_preds_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
-        arg_params['simple_baseline_a_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
 
-        # # a_preds branch's init
-        # arg_params['simple_baseline_a_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
-        # arg_params['simple_baseline_a_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
+        # a_preds branch's init
+        arg_params['simple_baseline_a_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
+        arg_params['simple_baseline_a_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
 
         '''
         # ones/zero for debug
