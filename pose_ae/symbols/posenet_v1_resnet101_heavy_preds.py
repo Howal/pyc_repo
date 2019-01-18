@@ -51,16 +51,16 @@ class posenet_v1_resnet101_heavy_preds(Symbol):
             #                         momentum=0.9, name=prefix + '_bn')
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu')
 
-        d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1),
+        d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                      no_bias=False, name='simple_baseline_d_preds1')  # shape, [N, num_parts, H, W]
-        d_preds = mx.sym.Convolution(data=d_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1),
+        d_preds = mx.sym.Convolution(data=d_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                      no_bias=False, name='simple_baseline_d_preds2')  # shape, [N, num_parts, H, W]
         d_preds = mx.sym.Convolution(data=d_preds, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
                                      no_bias=False, name='simple_baseline_d_preds3')  # shape, [N, num_parts, H, W]
 
-        a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1),
+        a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                      no_bias=False, name='simple_baseline_a_preds1')  # shape, [N, num_parts, H, W]
-        a_preds = mx.sym.Convolution(data=a_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1),
+        a_preds = mx.sym.Convolution(data=a_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                      no_bias=False, name='simple_baseline_a_preds2')  # shape, [N, num_parts, H, W]
         a_preds = mx.sym.Convolution(data=a_preds, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
                                      no_bias=False, name='simple_baseline_a_preds3')  # shape, [N, num_parts, H, W]
