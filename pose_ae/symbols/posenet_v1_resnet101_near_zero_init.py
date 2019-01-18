@@ -8,7 +8,7 @@ from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 
-class posenet_v1_resnet101(Symbol):
+class posenet_v1_resnet101_near_zero(Symbol):
     def __init__(self, FP16=False):
         """
         Use __init__ to define parameter network needs
