@@ -52,18 +52,22 @@ class posenet_v1_resnet101_heavy_preds(Symbol):
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu')
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
-                                     no_bias=False, name='simple_baseline_d_preds1')  # shape, [N, num_parts, H, W]
+                                     no_bias=False, name='simple_baseline_d_preds_conv1')  # shape, [N, num_parts, H, W]
+        d_preds = mx.sym.Activation(data=d_preds, act_type='relu', name='simple_baseline_d_preds_relu1')
         d_preds = mx.sym.Convolution(data=d_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
-                                     no_bias=False, name='simple_baseline_d_preds2')  # shape, [N, num_parts, H, W]
+                                     no_bias=False, name='simple_baseline_d_preds_conv2')  # shape, [N, num_parts, H, W]
+        d_preds = mx.sym.Activation(data=d_preds, act_type='relu', name='simple_baseline_d_preds_relu2')
         d_preds = mx.sym.Convolution(data=d_preds, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
                                      no_bias=False, name='simple_baseline_d_preds3')  # shape, [N, num_parts, H, W]
 
         a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
-                                     no_bias=False, name='simple_baseline_a_preds1')  # shape, [N, num_parts, H, W]
+                                     no_bias=False, name='simple_baseline_a_preds_conv1')  # shape, [N, num_parts, H, W]
+        a_preds = mx.sym.Activation(data=a_preds, act_type='relu', name='simple_baseline_a_preds_relu1')
         a_preds = mx.sym.Convolution(data=a_preds, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
-                                     no_bias=False, name='simple_baseline_a_preds2')  # shape, [N, num_parts, H, W]
+                                     no_bias=False, name='simple_baseline_a_preds_conv2')  # shape, [N, num_parts, H, W]
+        a_preds = mx.sym.Activation(data=a_preds, act_type='relu', name='simple_baseline_a_preds_relu2')
         a_preds = mx.sym.Convolution(data=a_preds, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
-                                     no_bias=False, name='simple_baseline_a_preds3')  # shape, [N, num_parts, H, W]
+                                     no_bias=False, name='simple_baseline_a_preds_conv3')  # shape, [N, num_parts, H, W]
 
         # calc_loss
         if is_train:
@@ -199,29 +203,29 @@ class posenet_v1_resnet101_heavy_preds(Symbol):
             # aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
 
         # pytorch's kaiming_uniform_
-        weight_shape = self.arg_shape_dict['simple_baseline_d_preds1_weight']
+        weight_shape = self.arg_shape_dict['simple_baseline_d_preds_conv1_weight']
         fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['simple_baseline_d_preds1_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['simple_baseline_d_preds1_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds1_bias'])
-        arg_params['simple_baseline_a_preds1_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds1_weight'])
-        arg_params['simple_baseline_a_preds1_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds1_bias'])
+        arg_params['simple_baseline_d_preds_conv1_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        arg_params['simple_baseline_d_preds_conv1_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_conv1_bias'])
+        arg_params['simple_baseline_a_preds_conv1_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv1_weight'])
+        arg_params['simple_baseline_a_preds_conv1_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv1_bias'])
 
-        weight_shape = self.arg_shape_dict['simple_baseline_d_preds2_weight']
+        weight_shape = self.arg_shape_dict['simple_baseline_d_preds_conv2_weight']
         fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['simple_baseline_d_preds2_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['simple_baseline_d_preds2_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds2_bias'])
-        arg_params['simple_baseline_a_preds2_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds2_weight'])
-        arg_params['simple_baseline_a_preds2_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds2_bias'])
+        arg_params['simple_baseline_d_preds_conv2_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        arg_params['simple_baseline_d_preds_conv2_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_conv2_bias'])
+        arg_params['simple_baseline_a_preds_conv2_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv2_weight'])
+        arg_params['simple_baseline_a_preds_conv2_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv2_bias'])
 
-        weight_shape = self.arg_shape_dict['simple_baseline_d_preds3_weight']
+        weight_shape = self.arg_shape_dict['simple_baseline_d_preds_conv3_weight']
         fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['simple_baseline_d_preds3_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['simple_baseline_d_preds3_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds3_bias'])
-        arg_params['simple_baseline_a_preds3_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds3_weight'])
-        arg_params['simple_baseline_a_preds3_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds3_bias'])
+        arg_params['simple_baseline_d_preds_conv3_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        arg_params['simple_baseline_d_preds_conv3_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_conv3_bias'])
+        arg_params['simple_baseline_a_preds_conv3_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv3_weight'])
+        arg_params['simple_baseline_a_preds_conv3_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_conv3_bias'])
 
         # # a_preds branch's init
         # arg_params['simple_baseline_a_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
