@@ -195,7 +195,7 @@ class posenet_v1_resnet101_dilated_c5(Symbol):
 
     def init_weight_simple_baseline(self, cfg, arg_params, aux_params):
 
-        for _stage in range(3):
+        for _stage in range(2):
             prefix = 'simple_baseline_stage{}'.format(_stage)
             # pytorch's kaiming_uniform_
             weight_shape = self.arg_shape_dict[prefix + '_deconv_weight']
