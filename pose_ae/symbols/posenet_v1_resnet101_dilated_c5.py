@@ -8,7 +8,7 @@ from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 
-class posenet_v1_resnet101(Symbol):
+class posenet_v1_resnet101_dilated_c5(Symbol):
     def __init__(self, FP16=False):
         """
         Use __init__ to define parameter network needs
@@ -103,12 +103,12 @@ class posenet_v1_resnet101(Symbol):
             bn_use_global_stats = True
 
         _, _, _, _, c5 = resnet_v1.get_resnet_backbone(data=data, num_layers=101,
-                                                       use_dilation_on_c5=False,
+                                                       use_dilation_on_c5=True,
                                                        use_dconv=False, dconv_lr_mult=0.001, dconv_group=1, dconv_start_channel=512,
                                                        bn_mom=0.9)
         # simple baseline's deconv net
         data = c5
-        for _stage in range(3):
+        for _stage in range(2):
             prefix = 'simple_baseline_stage{}'.format(_stage)
             _stage_scale = 2 ** (2 - _stage)
             data = mx.sym.Deconvolution(data=data, num_filter=256, kernel=(4, 4), stride=(2, 2),
