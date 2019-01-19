@@ -2,23 +2,23 @@
 #mxnet use docker philly/jobs/test/mxnet v131_py27_cuda9_zeliu
 MXNET_VERSION: "mxnet_1.3.1"
 output_path: "./output/pose/coco"
-symbol: posenet_v1_resnet101_512out
+symbol: posenet_v1_resnet101_256out
 gpus: '0,1,2,3,4,5,6,7'
 class_agnostic: false
 frequent: 10
 kvstore: device
-rng_seed: 3
+
 pose_aug:
   AUG_TYPE: 'OUR_W_RC_WO_JIT'
   SCALES:
   - 512
   - 512
   SCALES_OUT:
-  - 512
-  - 512
+  - 128
+  - 128
 
 network:
-  pretrained: "./model/resnet101_huhan/resnet_huhan_101"
+  pretrained: "/hdfs/resrchvc/v-zhuyao/model/resnet101_huhan/resnet_huhan_101"
   pretrained_epoch: 0
   PIXEL_MEANS:
   - 103.06
@@ -44,7 +44,7 @@ dataset:
   use_zip: true
   ignore_posedb_cache: false
   dataset: coco_pose
-  dataset_path: "./data/coco"
+  dataset_path: "/hdfs/resrchvc/v-zhuyao/data/coco"
   image_set: train
 #  image_set: test_dev, test_std
   root_path: "./"
