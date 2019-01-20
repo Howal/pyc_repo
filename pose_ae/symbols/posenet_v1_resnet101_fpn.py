@@ -130,10 +130,11 @@ class posenet_v1_resnet101_fpn(Symbol):
                                                        bn_mom=0.9)
         # FPN p2 shape W,H = 128, 128
         fpn_p2, _, _, _, _ = self.get_fpn_feature(c2, c3, c4, c5, feature_dim=256)
+        data = fpn_p2
 
-        data = mx.sym.Convolution(data=fpn_p2, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
-                                  no_bias=False, name='preds_conv0')
-        data = mx.sym.Activation(data=data, act_type='relu', name='preds_relu0')
+        # data = mx.sym.Convolution(data=data, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
+        #                           no_bias=False, name='preds_conv0')
+        # data = mx.sym.Activation(data=data, act_type='relu', name='preds_relu0')
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
                                    no_bias=False, name='d_preds_conv0')  # shape, [N, num_parts, H, W]
@@ -227,13 +228,13 @@ class posenet_v1_resnet101_fpn(Symbol):
                 bound = np.sqrt(6 / ((1 + 5) * fan_in))
                 arg_params[prefix + '_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
                 arg_params[prefix + '_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_bias'])
-
-        # pytorch's kaiming_uniform_
-        weight_shape = self.arg_shape_dict['preds_conv0_weight']
-        fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
-        bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['preds_conv0_bias'])
+        #
+        # # pytorch's kaiming_uniform_
+        # weight_shape = self.arg_shape_dict['preds_conv0_weight']
+        # fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
+        # bound = np.sqrt(6 / ((1 + 5) * fan_in))
+        # arg_params['preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        # arg_params['preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['preds_conv0_bias'])
 
         # pytorch's kaiming_uniform_
         weight_shape = self.arg_shape_dict['d_preds_conv0_weight']
