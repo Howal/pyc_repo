@@ -131,7 +131,7 @@ class posenet_v1_resnet101_fpn(Symbol):
         # FPN p2 shape W,H = 128, 128
         fpn_p2, _, _, _, _ = self.get_fpn_feature(c2, c3, c4, c5, feature_dim=256)
 
-        data = mx.sym.Convolution(data=fpn_p2, num_filter=num_parts, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
+        data = mx.sym.Convolution(data=fpn_p2, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                   no_bias=False, name='preds_conv0')
         data = mx.sym.Activation(data=data, act_type='relu', name='preds_relu0')
 
