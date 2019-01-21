@@ -219,22 +219,14 @@ class posenet_v1_resnet101_fpn2(Symbol):
     def init_weight_fpn(self, cfg, arg_params, aux_params):
         for _stage in range(2, 6):
             prefix = 'fpn_p{}_1x1'.format(_stage)
-            # pytorch's kaiming_uniform_
-            weight_shape = self.arg_shape_dict[prefix + '_weight']
-            fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
-            bound = np.sqrt(6 / ((1 + 5) * fan_in))
-            arg_params[prefix + '_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-            arg_params[prefix + '_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_bias'])
+            arg_params[prefix + '_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict[prefix + '_weight'])
+            arg_params[prefix + '_bias'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bias'])
         for _stage in range(2, 7):
             prefix = 'fpn_p{}'.format(_stage)
             if prefix+'_weight' in self.arg_shape_dict.keys():
-                # pytorch's kaiming_uniform_
-                weight_shape = self.arg_shape_dict[prefix + '_weight']
-                fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
-                bound = np.sqrt(6 / ((1 + 5) * fan_in))
-                arg_params[prefix + '_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-                arg_params[prefix + '_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_bias'])
-        #
+                arg_params[prefix + '_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict[prefix + '_weight'])
+                arg_params[prefix + '_bias'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bias'])
+
         # # pytorch's kaiming_uniform_
         # weight_shape = self.arg_shape_dict['preds_conv0_weight']
         # fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
