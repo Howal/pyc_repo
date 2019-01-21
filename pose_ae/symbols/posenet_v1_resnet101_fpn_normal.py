@@ -8,7 +8,7 @@ from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 
-class posenet_v1_resnet101_fpn(Symbol):
+class posenet_v1_resnet101_fpn_normal(Symbol):
     def __init__(self, FP16=False):
         """
         Use __init__ to define parameter network needs
@@ -240,16 +240,22 @@ class posenet_v1_resnet101_fpn(Symbol):
         # arg_params['preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['preds_conv0_bias'])
 
 
-        # pytorch's kaiming_uniform_
-        weight_shape = self.arg_shape_dict['d_preds_conv0_weight']
-        fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
-        bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['d_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['d_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['d_preds_conv0_bias'])
+        arg_params['d_preds_conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['d_preds_conv0_weight'])
+        arg_params['d_preds_conv0_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['d_preds_conv0_bias'])
 
-        # a_preds branch's init
-        arg_params['a_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_weight'])
-        arg_params['a_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_bias'])
+        arg_params['a_preds_conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['a_preds_conv0_weight'])
+        arg_params['a_preds_conv0_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['a_preds_conv0_bias'])
+
+        # # pytorch's kaiming_uniform_
+        # weight_shape = self.arg_shape_dict['d_preds_conv0_weight']
+        # fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
+        # bound = np.sqrt(6 / ((1 + 5) * fan_in))
+        # arg_params['d_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        # arg_params['d_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['d_preds_conv0_bias'])
+        #
+        # # a_preds branch's init
+        # arg_params['a_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_weight'])
+        # arg_params['a_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_bias'])
 
         '''
         # ones/zero for debug
