@@ -217,8 +217,8 @@ class posenet_v1_resnet101_dilated_c5(Symbol):
         arg_params['simple_baseline_d_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_bias'])
 
         # a_preds branch's init
-        arg_params['simple_baseline_a_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
-        arg_params['simple_baseline_a_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
+        arg_params['simple_baseline_a_preds_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
+        arg_params['simple_baseline_a_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
 
         '''
         # ones/zero for debug
