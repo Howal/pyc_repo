@@ -242,8 +242,8 @@ class posenet_v1_resnet101_fpn2(Symbol):
         arg_params['d_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['d_preds_conv0_bias'])
 
         # a_preds branch's init
-        arg_params['a_preds_conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['a_preds_conv0_weight'])
-        arg_params['a_preds_conv0_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['a_preds_conv0_bias'])
+        arg_params['a_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_weight'])
+        arg_params['a_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_bias'])
 
         '''
         # ones/zero for debug
