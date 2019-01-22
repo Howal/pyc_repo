@@ -5,7 +5,7 @@ output_path: "./output/pose/coco"
 symbol: posenet_v1_resnet101
 gpus: '0,1,2,3'
 class_agnostic: false
-frequent: 10
+frequent: 100
 kvstore: dist_device_sync
 rng_seed: 3
 pose_aug:
