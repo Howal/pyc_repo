@@ -55,7 +55,7 @@ class posenet_v1_resnet101(Symbol):
 
         # mean_diff: [N, P, P, C]
         mean_sqr_diff = mx.sym.broadcast_sub(mean_keypoint_feats, mean_keypoint_feats_t, name=prefix + '_braodcast_sub_mean_sqr_diff')
-        mean_sqr_diff = mx.sym.square(mean_sqr_diff).sum(axis=3)
+        mean_sqr_diff = mx.sym.square(mean_sqr_diff).mean(axis=3)  # sum
 
         # outside_loss: [N, P, P]
         outside_loss = mx.sym.exp(-mean_sqr_diff)
@@ -70,7 +70,7 @@ class posenet_v1_resnet101(Symbol):
 
         # instance_diff_sqr: [N, P, K, 1]
         instance_sqr_diff = mx.sym.broadcast_sub(keypoint_feats, mean_keypoint_feats, name=prefix + '_broadcast_sub_instance_sqr_diff')
-        instance_sqr_diff = mx.sym.square(instance_sqr_diff).sum(axis=3)
+        instance_sqr_diff = mx.sym.square(instance_sqr_diff).mean(axis=3)  # sum
 
         instance_sqr_diff = instance_sqr_diff * keypoint_visible
 
@@ -88,6 +88,7 @@ class posenet_v1_resnet101(Symbol):
         num_parts = cfg.dataset.NUM_PARTS
         max_persons = cfg.dataset.MAX_PERSONS
         feat_w, feat_h = cfg.pose_aug.SCALES_OUT[0]
+        embedding_dim = cfg.TRAIN.embedding_dim
         if cfg.network.use_bn_type is False:
             use_bn_type = ('bn',)
         elif cfg.network.use_bn_type == 'syncbn':
@@ -126,7 +127,7 @@ class posenet_v1_resnet101(Symbol):
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
                                    no_bias=False, name='simple_baseline_d_preds')  # shape, [N, num_parts, H, W]
-        a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
+        a_preds = mx.sym.Convolution(data=data, num_filter=num_parts * embedding_dim, kernel=(1, 1), stride=(1, 1),
                                    no_bias=False, name='simple_baseline_a_preds')  # shape, [N, num_parts, H, W]
 
         # calc_loss
@@ -140,9 +141,11 @@ class posenet_v1_resnet101(Symbol):
             d_loss = mx.symbol.mean(data=tmp_d_loss, axis=0)  # shape, [1]
 
 
-            # a_preds: [N, K, H, W]
-            # a_pred:[N, K, H, W, 1]
-            a_pred = a_preds.reshape(shape=(0, 0, 0, 0, 1))
+            # a_preds: [N, K * E, H, W]
+            # a_pred:[N, K, H, W, E]
+            a_pred = a_preds.reshape(shape=(0, -4, -1, embedding_dim, 0, 0))
+            a_pred = mx.sym.transpose(a_pred, axes=(0, 1, 3, 4, 2))
+            # a_pred = a_preds.reshape(shape=(0, 0, 0, 0, 1))
 
             tmp_a_loss_outside, tmp_a_loss_inside = self.get_inside_outside_loss(feature=a_pred,
                                                                                  keypoint_visible=keypoint_visible,
@@ -221,8 +224,12 @@ class posenet_v1_resnet101(Symbol):
         arg_params['simple_baseline_d_preds_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
         arg_params['simple_baseline_d_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_d_preds_bias'])
 
+        # pytorch's kaiming_uniform_
+        weight_shape = self.arg_shape_dict['simple_baseline_a_preds_weight']
+        fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
+        bound = np.sqrt(6 / ((1 + 5) * fan_in))
         # a_preds branch's init
-        arg_params['simple_baseline_a_preds_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_weight'])
+        arg_params['simple_baseline_a_preds_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
         arg_params['simple_baseline_a_preds_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['simple_baseline_a_preds_bias'])
 
         # arg_params['simple_baseline_d_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['simple_baseline_d_preds_weight'])
