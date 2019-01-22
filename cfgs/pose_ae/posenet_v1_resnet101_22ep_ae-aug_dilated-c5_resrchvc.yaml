@@ -3,7 +3,7 @@
 MXNET_VERSION: "mxnet_1.3.1"
 output_path: "./output/pose/coco"
 symbol: posenet_v1_resnet101_dilated_c5
-gpus: '0,1,2,3'
+gpus: '0,1,2,3,4,5,6,7'
 class_agnostic: false
 frequent: 10
 kvstore: device
