@@ -70,7 +70,7 @@ TRAIN:
   end_epoch: 150
   model_prefix: 'pose_coco'
   # whether resume training
-  AUTO_RESUME: true
+  AUTO_RESUME: false
   RESUME: false
   # whether flip image
   FLIP: true
