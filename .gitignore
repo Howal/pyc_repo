@@ -4,3 +4,4 @@ cache
 model
 data
 output
+pose_ae/symbols/*.pyc

@@ -143,7 +143,7 @@ class posenet_v1_resnet101_embedding(Symbol):
 
             # a_preds: [N, K * E, H, W]
             # a_pred:[N, K, H, W, E]
-            a_pred = a_preds.reshape(shape=(0, -1, embedding_dim, 0, 0))
+            a_pred = a_preds.reshape(shape=(0, -4, -1, embedding_dim, 0, 0), name='test')
             a_pred = mx.sym.transpose(a_pred, axes=(0, 1, 3, 4, 2))
             # a_pred = a_preds.reshape(shape=(0, 0, 0, 0, 1))
 
