@@ -3,10 +3,10 @@
 MXNET_VERSION: "mxnet_1.3.1"
 output_path: "./output/pose/coco"
 symbol: posenet_v1_resnet101
-gpus: '0,1,2,3'
+gpus: '0,1,2,3,4,5,6,7'
 class_agnostic: false
 frequent: 10
-kvstore: dist_device_sync
+kvstore: device
 rng_seed: 3
 pose_aug:
   AUG_TYPE: 'OUR_W_RC_WO_JIT'
@@ -70,7 +70,7 @@ TRAIN:
   end_epoch: 22
   model_prefix: 'pose_coco'
   # whether resume training
-  AUTO_RESUME: false
+  AUTO_RESUME: true
   RESUME: false
   # whether flip image
   FLIP: true

@@ -3,10 +3,10 @@
 MXNET_VERSION: "mxnet_1.3.1"
 output_path: "./output/pose/coco"
 symbol: posenet_v1_resnet101
-gpus: '0,1,2,3,4,5,6,7'
+gpus: '0,1,2,3'
 class_agnostic: false
 frequent: 10
-kvstore: device
+kvstore: dist_device_sync
 rng_seed: 3
 pose_aug:
   AUG_TYPE: 'OUR_W_RC_WO_JIT'
@@ -58,7 +58,7 @@ TRAIN:
   a_loss_in: 0.001
   a_loss_out: 0.001
   lr: 0.000025
-  lr_step: '82.05'
+  lr_step: '12.15'
   lr_factor: 0.05
   warmup: false
   warmup_lr: 0.0
@@ -67,10 +67,10 @@ TRAIN:
   warmup_step: 500
   wd: 0.0
   begin_epoch: 0
-  end_epoch: 150
+  end_epoch: 22
   model_prefix: 'pose_coco'
   # whether resume training
-  AUTO_RESUME: true
+  AUTO_RESUME: false
   RESUME: false
   # whether flip image
   FLIP: true
@@ -99,5 +99,5 @@ TEST:
   PROPOSAL_MIN_SIZE: 0
   # RCNN nms
   NMS: 0.5
-  test_epoch: 150
+  test_epoch: 22
   max_per_image: 100
