@@ -131,7 +131,7 @@ class posenet_v1_resnet101_extra_4_conv(Symbol):
             data_b = mx.sym.Activation(data=data_b, act_type='relu', name=prefix + '_relu2')
             data_b = mx.sym.Convolution(data=data_b, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv2')  # shape, [N, num_parts, H, W]
-            data_b = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu3')
+            data_b = mx.sym.Activation(data=data_b, act_type='relu', name=prefix + '_relu3')
             data_b = mx.sym.Convolution(data=data_b, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv3')  # shape, [N, num_parts, H, W]
             data_b = mx.sym.Activation(data=data_b, act_type='relu', name=prefix + '_relu4')
