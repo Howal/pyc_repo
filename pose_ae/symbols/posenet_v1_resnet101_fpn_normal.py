@@ -148,9 +148,9 @@ class posenet_v1_resnet101_fpn_normal(Symbol):
 
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
-                                   no_bias=False, name='d_preds_conv0')  # shape, [N, num_parts, H, W]
+                                   no_bias=False, name='d_preds')  # shape, [N, num_parts, H, W]
         a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
-                                   no_bias=False, name='a_preds_conv0')  # shape, [N, num_parts, H, W]
+                                   no_bias=False, name='a_preds')  # shape, [N, num_parts, H, W]
 
         # calc_loss
         if is_train:
@@ -240,11 +240,11 @@ class posenet_v1_resnet101_fpn_normal(Symbol):
         # arg_params['preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['preds_conv0_bias'])
 
 
-        arg_params['d_preds_conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['d_preds_conv0_weight'])
-        arg_params['d_preds_conv0_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['d_preds_conv0_bias'])
+        arg_params['d_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['d_preds_weight'])
+        arg_params['d_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['d_preds_bias'])
 
-        arg_params['a_preds_conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['a_preds_conv0_weight'])
-        arg_params['a_preds_conv0_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['a_preds_conv0_bias'])
+        arg_params['a_preds_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['a_preds_weight'])
+        arg_params['a_preds_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['a_preds_bias'])
 
         # # pytorch's kaiming_uniform_
         # weight_shape = self.arg_shape_dict['d_preds_conv0_weight']

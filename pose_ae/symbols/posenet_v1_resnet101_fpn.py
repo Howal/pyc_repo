@@ -148,9 +148,9 @@ class posenet_v1_resnet101_fpn(Symbol):
 
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
-                                   no_bias=False, name='d_preds_conv0')  # shape, [N, num_parts, H, W]
+                                   no_bias=False, name='d_preds0')  # shape, [N, num_parts, H, W]
         a_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
-                                   no_bias=False, name='a_preds_conv0')  # shape, [N, num_parts, H, W]
+                                   no_bias=False, name='a_preds0')  # shape, [N, num_parts, H, W]
 
         # calc_loss
         if is_train:
@@ -241,15 +241,15 @@ class posenet_v1_resnet101_fpn(Symbol):
 
 
         # pytorch's kaiming_uniform_
-        weight_shape = self.arg_shape_dict['d_preds_conv0_weight']
+        weight_shape = self.arg_shape_dict['d_preds0_weight']
         fan_in = float(weight_shape[1]) * weight_shape[2] * weight_shape[3]
         bound = np.sqrt(6 / ((1 + 5) * fan_in))
-        arg_params['d_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
-        arg_params['d_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['d_preds_conv0_bias'])
+        arg_params['d_preds0_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
+        arg_params['d_preds0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['d_preds0_bias'])
 
         # a_preds branch's init
-        arg_params['a_preds_conv0_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_weight'])
-        arg_params['a_preds_conv0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds_conv0_bias'])
+        arg_params['a_preds0_weight'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds0_weight'])
+        arg_params['a_preds0_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict['a_preds0_bias'])
 
         '''
         # ones/zero for debug
