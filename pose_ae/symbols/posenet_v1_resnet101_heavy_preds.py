@@ -18,6 +18,80 @@ class posenet_v1_resnet101_heavy_preds(Symbol):
         self.init_pre_list = []
         self.init_hourglass_list = []
 
+    def get_inside_outside_loss(self, feature, keypoint_visible, keypoint_location, batch_size, max_persons, num_keypoint_cls, prefix):
+        # visible_keypoint_num: [N, P, 1]
+        visible_keypoint_num = keypoint_visible.sum(axis=2, keepdims=True)
+        # visible_person: [N, P, 1]
+        visible_person = visible_keypoint_num > 0
+        # visible_person_t: [N, 1, P]
+        visible_person_t = mx.sym.transpose(visible_person, axes=(0, 2, 1))
+        # visible_person_pair: [N, P, P]
+        eye_mat = mx.sym.eye(max_persons).reshape(shape=(1, max_persons, max_persons))
+        visible_person_pair = mx.sym.broadcast_mul(mx.sym.broadcast_mul(visible_person, visible_person_t), 1-eye_mat)
+        # visible_person_num: [N, 1, 1]
+        visible_person_num = visible_person.sum(axis=1)
+
+        # feature: [N, K, H, W, C]
+        keypoint_feats = mx.sym.gather_nd(feature, keypoint_location)
+
+        # keypoint_feat: [N, P, K, C]
+        keypoint_feats = mx.sym.reshape(keypoint_feats, shape=(batch_size, -1, num_keypoint_cls, 0), name=prefix + "_keypoint_feats_reshape")
+
+        keypoint_visible_4d = mx.sym.expand_dims(keypoint_visible, axis=3)
+
+        # masked unvalid keypoint_feats
+        keypoint_feats = mx.sym.broadcast_mul(keypoint_feats, keypoint_visible_4d, name='masked_keypoint_feats')
+
+        # mean keypoint_feat: [N, P, C]
+        mean_keypoint_feats = mx.sym.broadcast_div(mx.sym.sum(keypoint_feats, axis=2),
+                                                   mx.sym.maximum(1, visible_keypoint_num))
+
+        # mean keypoint_feat: [N, P, 1, C]
+        mean_keypoint_feats = mx.sym.expand_dims(mean_keypoint_feats, axis=2)
+
+        # calc outside loss
+        # mean_keypoint_feats_t: [N, 1, P, C]
+        mean_keypoint_feats_t = mx.sym.transpose(mean_keypoint_feats, axes=(0, 2, 1, 3))
+
+        # mean_diff: [N, P, P, C]
+        mean_sqr_diff = mx.sym.broadcast_sub(mean_keypoint_feats, mean_keypoint_feats_t, name=prefix + '_braodcast_sub_mean_sqr_diff')
+        # mean_sqr_diff = mx.symbol.Custom(op_type='monitor', data=mean_sqr_diff, nickname='mean_sqr_diff')
+
+        mean_sqr_diff = mx.sym.square(mean_sqr_diff).sum(axis=3)
+
+        # visible_person_pair = mx.symbol.Custom(op_type='monitor', data=visible_person_pair, nickname='visible_person_pair')
+        mean_sqr_diff = mean_sqr_diff * visible_person_pair
+        # mean_sqr_diff = mx.symbol.Custom(op_type='monitor', data=mean_sqr_diff, nickname='mean_sqr_diff')
+
+        # outside_loss: [N, P, P]
+        outside_loss = mx.sym.exp(-mean_sqr_diff)
+        # outside_loss = mx.symbol.Custom(op_type='monitor', data=outside_loss, nickname='outside_loss_before')
+        outside_loss = outside_loss * visible_person_pair
+        # outside_loss = mx.symbol.Custom(op_type='monitor', data=outside_loss, nickname='outside_loss')
+
+        # outside_loss: [N, P*P]
+        outside_loss = outside_loss.reshape(shape=(0, -1))
+        # outside_loss: [N]
+        norm_scale = mx.sym.maximum(1, mx.sym.square(visible_person_num) - visible_person_num).reshape(shape=(-1))
+        outside_loss = outside_loss.sum(axis=1) / norm_scale
+        # outside_loss = mx.symbol.Custom(op_type='monitor', data=outside_loss, nickname=prefix + '_outside_loss')
+
+        # instance_diff_sqr: [N, P, K, 1]
+        instance_sqr_diff = mx.sym.broadcast_sub(keypoint_feats, mean_keypoint_feats, name=prefix + '_broadcast_sub_instance_sqr_diff')
+        # instance_sqr_diff = mx.symbol.Custom(op_type='monitor', data=instance_sqr_diff, nickname='instance_sqr_diff')
+        instance_sqr_diff = mx.sym.square(instance_sqr_diff).sum(axis=3)
+
+        instance_sqr_diff = instance_sqr_diff * keypoint_visible
+
+        # inside loss
+        inside_loss = instance_sqr_diff.sum(axis=2, keepdims=True) / mx.sym.maximum(1, visible_keypoint_num)
+        inside_loss = inside_loss.sum(axis=1) / mx.sym.maximum(1, visible_person_num)
+
+        outside_loss_mean = mx.sym.mean(outside_loss, name="outside_loss_mean")
+        inside_loss_mean = mx.sym.mean(inside_loss, name="inside_loss_mean")
+
+        return outside_loss_mean, inside_loss_mean
+
     def get_symbol(self, cfg, is_train=True):
         # config alias for convenient
         num_parts = cfg.dataset.NUM_PARTS
@@ -79,66 +153,18 @@ class posenet_v1_resnet101_heavy_preds(Symbol):
 
             d_loss = mx.symbol.mean(data=tmp_d_loss, axis=0)  # shape, [1]
 
-            # prepare keypoints
-            keypoints_idx_list = []
-            keypoints_mask_list = []
-            keypoints_valid_list = []
-            keypoints_valid_list2 = []
-            for i in range(max_persons):
-                tmp_keypoints = mx.symbol.squeeze(mx.sym.slice_axis(data=keypoints, axis=1, begin=i, end=i + 1), axis=(1))  # shape, [N, num_parts, 2]
-                tmp_keypoints_idx = mx.symbol.squeeze(mx.sym.slice_axis(data=tmp_keypoints, axis=2, begin=0, end=1), axis=(2))  # shape, [N, num_parts]
-                tmp_keypoints_mask = mx.symbol.squeeze(mx.sym.slice_axis(data=tmp_keypoints, axis=2, begin=1, end=2), axis=(2))  # shape, [N, num_parts]
-                tmp_keypoints_valid = tmp_keypoints_mask.sum(axis=1) > 0  # shape, [N]
-                keypoints_idx_list.append(tmp_keypoints_idx)
-                keypoints_mask_list.append(tmp_keypoints_mask)
-                keypoints_valid_list.append(tmp_keypoints_valid)
-            tmp_a_loss_inside_count = mx.sym.stack(*keypoints_valid_list, axis=1)  # shape [N, max_persons]
-            tmp_a_loss_inside_scale = mx.symbol.broadcast_div(tmp_a_loss_inside_count, tmp_a_loss_inside_count.sum(axis=1, keepdims=True) + (tmp_a_loss_inside_count.sum(axis=1, keepdims=True) == 0))  # shape, [N, max_persons]
 
-            for j in range(max_persons):
-                for k in range(j + 1, max_persons):
-                    keypoints_valid_list2.append(keypoints_valid_list[j] * keypoints_valid_list[k])
-            tmp_a_loss_outside_count = mx.sym.stack(*keypoints_valid_list2, axis=1)  # shape, [N, max_persons * (max_persons - 1) / 2]
-            tmp_a_loss_outside_scale = mx.symbol.broadcast_div(tmp_a_loss_outside_count, tmp_a_loss_outside_count.sum(axis=1, keepdims=True) + (tmp_a_loss_outside_count.sum(axis=1, keepdims=True) == 0))  # shape, [N, max_persons * (max_persons - 1) / 2]
+            # a_preds: [N, K, H, W]
+            # a_pred:[N, K, H, W, 1]
+            a_pred = a_preds.reshape(shape=(0, 0, 0, 0, 1))
 
-            # calc association loss
-
-            # flatten
-            tmp_a_pred = mx.sym.Reshape(data=a_preds, shape=(0, 0, -3), name='association_reshape{}'.format(i + 1))  # shape, [N, num_parts, W/4 * H/4]
-            person_mean_list = []
-
-            # calc association loss inside one person
-            tmp_a_loss_inside_list = []
-            for j in range(max_persons):
-                # pick feat for person-j
-                tmp_person_feat = mx.sym.pick(tmp_a_pred, keypoints_idx_list[j])  # shape, [N, num_parts]
-                # calc person-j's mean feat
-                tmp_persin_feat_scale = mx.symbol.broadcast_div(keypoints_mask_list[j], keypoints_mask_list[j].sum(axis=1, keepdims=True) + (keypoints_mask_list[j].sum(axis=1, keepdims=True) == 0))  # shape, [N, num_parts]
-                tmp_person_feat_mean = mx.symbol.sum(tmp_person_feat * tmp_persin_feat_scale, axis=1)  # shape, [N]
-
-                person_mean_list.append(tmp_person_feat_mean)
-                tmp_person_feat_mean_expand = mx.symbol.expand_dims(tmp_person_feat_mean, axis=1)  # shape, [N, 1]
-
-                # calc a_loss_inside
-                tmp_a_loss_inside = mx.symbol.square(data=mx.symbol.broadcast_sub(lhs=tmp_person_feat, rhs=tmp_person_feat_mean_expand))  # shape [N, num_parts]
-                tmp_a_loss_inside = mx.symbol.sum(tmp_a_loss_inside * tmp_persin_feat_scale, axis=1)  # shape, [N]
-                tmp_a_loss_inside_list.append(tmp_a_loss_inside)
-            tmp_a_loss_inside = mx.sym.stack(*tmp_a_loss_inside_list, axis=1)  # shape, [N, max_persons]
-            tmp_a_loss_inside = mx.symbol.sum(tmp_a_loss_inside * tmp_a_loss_inside_scale, axis=1)  # shape, [N]
-
-            # calc association loss inside between persons
-            tmp_a_loss_outside_list = []
-            tmp_ids = 0
-            for j in range(max_persons):
-                for k in range(j + 1, max_persons):
-                    tmp_a_loss_outside = mx.symbol.exp(data=-mx.symbol.square(
-                        data=(person_mean_list[j] - person_mean_list[k])))  # -1/2sigma^2 is -1 here, shape, [N]
-                    tmp_a_loss_outside = tmp_a_loss_outside * keypoints_valid_list2[tmp_ids]
-                    tmp_a_loss_outside_list.append(tmp_a_loss_outside)
-                    tmp_ids += 1
-            tmp_a_loss_outside = mx.sym.stack(*tmp_a_loss_outside_list, axis=1)  # shape, [N, max_persons * (max_persons - 1) / 2]
-            tmp_a_loss_outside = mx.symbol.sum(tmp_a_loss_outside * tmp_a_loss_outside_scale, axis=1)  # shape, [N]
-
+            tmp_a_loss_outside, tmp_a_loss_inside = self.get_inside_outside_loss(feature=a_pred,
+                                                                                 keypoint_visible=keypoint_visible,
+                                                                                 keypoint_location=keypoint_location,
+                                                                                 batch_size=cfg.TRAIN.BATCH_IMAGES,
+                                                                                 num_keypoint_cls=17,
+                                                                                 max_persons=max_persons,
+                                                                                 prefix="stack_1")
             # stack all stage
             tmp_a_loss_inside = mx.symbol.mean(data=tmp_a_loss_inside, axis=0)  # shape, [1]
             tmp_a_loss_outside = 0.5 * mx.symbol.mean(data=tmp_a_loss_outside, axis=0)  # shape, [1]
