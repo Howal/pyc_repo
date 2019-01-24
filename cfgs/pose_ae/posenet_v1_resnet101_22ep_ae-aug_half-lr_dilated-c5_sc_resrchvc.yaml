@@ -57,7 +57,7 @@ TRAIN:
   d_loss: 1.0
   a_loss_in: 0.001
   a_loss_out: 0.001
-  lr: 0.000025
+  lr: 0.0000125
   lr_step: '12.15'
   lr_factor: 0.05
   warmup: false
