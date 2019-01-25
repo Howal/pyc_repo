@@ -125,11 +125,13 @@ class posenet_v1_resnet101_dilated_c5_sc(Symbol):
             data_b = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu1')
             data_b = mx.sym.Convolution(data=data_b, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv1')  # shape, [N, num_parts, H, W]
-            data_b = resnet_v1.bn_layer_wrapper(use_bn_type=use_bn_type, data=data_b, name=prefix+'_bn1', bn_mom=0.9)
+            if cfg.network.use_bn_type:
+                data_b = resnet_v1.bn_layer_wrapper(use_bn_type=use_bn_type, data=data_b, name=prefix+'_bn1', bn_mom=0.9)
             data_b = mx.sym.Activation(data=data_b, act_type='relu', name=prefix + '_relu2')
             data_b = mx.sym.Convolution(data=data_b, num_filter=256, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv2')  # shape, [N, num_parts, H, W]
-            data_b = resnet_v1.bn_layer_wrapper(use_bn_type=use_bn_type, data=data_b, name=prefix + '_bn2', bn_mom=0.9)
+            if cfg.network.use_bn_type:
+                data_b = resnet_v1.bn_layer_wrapper(use_bn_type=use_bn_type, data=data_b, name=prefix + '_bn2', bn_mom=0.9)
             data = data + data_b
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu3')
 
