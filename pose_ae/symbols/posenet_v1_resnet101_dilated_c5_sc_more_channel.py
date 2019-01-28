@@ -88,6 +88,14 @@ class posenet_v1_resnet101_dilated_c5_sc_more_channel(Symbol):
         num_parts = cfg.dataset.NUM_PARTS
         max_persons = cfg.dataset.MAX_PERSONS
         feat_w, feat_h = cfg.pose_aug.SCALES_OUT[0]
+        if cfg.network.use_bn_type is False:
+            use_bn_type = ('bn',)
+            head_use_bn_type = (False,)
+        elif cfg.network.use_bn_type == 'syncbn':
+            use_bn_type = ('syncbn', len(cfg.gpus.split(',')))
+            head_use_bn_type = ('syncbn', len(cfg.gpus.split(',')))
+        else:
+            raise ValueError('use_bn type: {} is illegal!'.format(cfg.network.use_bn_type))
 
         # input init
         if is_train:
@@ -105,8 +113,21 @@ class posenet_v1_resnet101_dilated_c5_sc_more_channel(Symbol):
         _, _, _, _, c5 = resnet_v1.get_resnet_backbone(data=data, num_layers=101,
                                                        use_dilation_on_c5=True,
                                                        use_dconv=False, dconv_lr_mult=0.001, dconv_group=1, dconv_start_channel=512,
-                                                       bn_mom=0.9)
+                                                       bn_mom=0.9, use_bn_type=use_bn_type)
         # simple baseline's deconv net
+
+        def bn_layer_wrapper(use_bn_type, data, name, bn_mom):
+            if use_bn_type[0] == 'bn':
+                body = mx.sym.BatchNorm(data=data, use_global_stats=True, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name)
+            elif use_bn_type[0] == 'syncbn':
+                body = mx.symbol.contrib.SyncBatchNorm(data=data, use_global_stats=False, fix_gamma=False, eps=2e-5,
+                                                       momentum=bn_mom, name=name, ndev=use_bn_type[1], key=name)
+            elif use_bn_type[0] is False:
+            	body = data
+            else:
+                raise ValueError('use_bn type: {} is illegal!'.format(use_bn_type[0]))
+            return body
+
         data = c5
         stage_num = 2
         for _stage in range(stage_num):
@@ -116,15 +137,16 @@ class posenet_v1_resnet101_dilated_c5_sc_more_channel(Symbol):
             data = mx.sym.Deconvolution(data=data, num_filter=num_filter, kernel=(4, 4), stride=(2, 2),
                                         no_bias=False, target_shape=(feat_h / _stage_scale, feat_w / _stage_scale),
                                         name=prefix + '_deconv')
-            # data = mx.sym.BatchNorm(data=data, use_global_stats=bn_use_global_stats, fix_gamma=False, eps=2e-5,
-            #                         momentum=0.9, name=prefix + '_bn')
+            data = bn_layer_wrapper(use_bn_type=head_use_bn_type, data=data, name=prefix + '_bn1', bn_mom=0.9)
             data_b = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu1')
             data_b = mx.sym.Convolution(data=data_b, num_filter=num_filter, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv1')  # shape, [N, num_parts, H, W]
+            data_b = bn_layer_wrapper(use_bn_type=head_use_bn_type, data=data_b, name=prefix + '_bn2', bn_mom=0.9)
             data_b = mx.sym.Activation(data=data_b, act_type='relu', name=prefix + '_relu2')
             data_b = mx.sym.Convolution(data=data_b, num_filter=num_filter, kernel=(3, 3), stride=(1, 1), pad=(1, 1),
                                          no_bias=False, name=prefix + '_conv2')  # shape, [N, num_parts, H, W]
             data = data + data_b
+            data_b = bn_layer_wrapper(use_bn_type=head_use_bn_type, data=data_b, name=prefix + '_bn3', bn_mom=0.9)
             data = mx.sym.Activation(data=data, act_type='relu', name=prefix + '_relu3')
 
         d_preds = mx.sym.Convolution(data=data, num_filter=num_parts, kernel=(1, 1), stride=(1, 1),
@@ -224,10 +246,12 @@ class posenet_v1_resnet101_dilated_c5_sc_more_channel(Symbol):
             arg_params[prefix + '_conv2_weight'] = mx.random.uniform(-bound, bound, shape=weight_shape)
             arg_params[prefix + '_conv2_bias'] = mx.random.uniform(-bound, bound, shape=self.arg_shape_dict[prefix + '_conv2_bias'])
 
-            # arg_params[prefix + '_bn_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn_gamma'])
-            # arg_params[prefix + '_bn_beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn_beta'])
-            # aux_params[prefix + '_bn_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn_moving_mean'])
-            # aux_params[prefix + '_bn_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn_moving_var'])
+            if cfg.network.use_bn_type == 'syncbn':
+            	for i in range(3):
+		            arg_params[prefix + '_bn{}_gamma'.format(i + 1)] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix + '_bn{}_gamma'.format(i + 1)])
+		            arg_params[prefix + '_bn{}_beta'.format(i + 1)] = mx.nd.zeros(shape=self.arg_shape_dict[prefix + '_bn{}_beta'.format(i + 1)])
+		            aux_params[prefix + '_bn{}_moving_mean'.format(i + 1)] = mx.nd.zeros(shape=self.aux_shape_dict[prefix + '_bn{}_moving_mean'.format(i + 1)])
+		            aux_params[prefix + '_bn{}_moving_var'.format(i + 1)] = mx.nd.ones(shape=self.aux_shape_dict[prefix + '_bn{}_moving_var'.format(i + 1)])
 
         # pytorch's kaiming_uniform_
         weight_shape = self.arg_shape_dict['simple_baseline_d_preds_weight']
@@ -252,5 +276,47 @@ class posenet_v1_resnet101_dilated_c5_sc_more_channel(Symbol):
         arg_params['{}_bias'.format(ele)] = mx.nd.zeros(shape=self.arg_shape_dict['{}_bias'.format(ele)])
         '''
 
+    def init_weight_backbone(self, cfg, arg_params, aux_params):
+        '''
+        _, c2, c3, c4, c5 = resnet_v1.get_resnet_backbone(data=data,
+                                                          num_layers=50,
+                                                          use_dilation_on_c5=cfg.network.use_dilation_on_c5,
+                                                          use_dconv=cfg.network.backbone_use_dconv,
+                                                          dconv_lr_mult=cfg.network.backbone_dconv_lr_mult,
+                                                          dconv_group=cfg.network.backbone_dconv_group,
+                                                          dconv_start_channel=cfg.network.backbone_dconv_start_channel,
+                                                          use_bn_type=use_bn_type)
+        '''
+        arg_params['conv0_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['conv0_weight'])
+        arg_params['bn0_gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict['bn0_gamma'])
+        arg_params['bn0_beta'] = mx.nd.zeros(shape=self.arg_shape_dict['bn0_beta'])
+        if cfg.network.use_bn_type != 'gn':
+            aux_params['bn0_moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict['bn0_moving_mean'])
+            aux_params['bn0_moving_var'] = mx.nd.ones(shape=self.aux_shape_dict['bn0_moving_var'])
+        units = [3, 4, 23, 3]
+        for i in range(4):
+            for j in range(units[i]):
+                for k in range(3):
+                    prefix_conv = 'stage{}_unit{}_conv{}_'.format(i + 1, j + 1, k + 1)
+                    prefix_bn = 'stage{}_unit{}_bn{}_'.format(i + 1, j + 1, k + 1)
+                    arg_params[prefix_conv + 'weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict[prefix_conv + 'weight'])
+                    arg_params[prefix_bn + 'gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix_bn + 'gamma'])
+                    arg_params[prefix_bn + 'beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix_bn + 'beta'])
+                    if cfg.network.use_bn_type != 'gn':
+                        aux_params[prefix_bn + 'moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix_bn + 'moving_mean'])
+                        aux_params[prefix_bn + 'moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix_bn + 'moving_var'])
+                if j == 0:
+                    prefix_conv = 'stage{}_unit{}_sc_'.format(i + 1, j + 1)
+                    prefix_bn = 'stage{}_unit{}_sc_bn_'.format(i + 1, j + 1)
+                    arg_params[prefix_conv + 'weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict[prefix_conv + 'weight'])
+                    arg_params[prefix_bn + 'gamma'] = mx.random.uniform(0, 1, shape=self.arg_shape_dict[prefix_bn + 'gamma'])
+                    arg_params[prefix_bn + 'beta'] = mx.nd.zeros(shape=self.arg_shape_dict[prefix_bn + 'beta'])
+                    if cfg.network.use_bn_type != 'gn':
+                        aux_params[prefix_bn + 'moving_mean'] = mx.nd.zeros(shape=self.aux_shape_dict[prefix_bn + 'moving_mean'])
+                        aux_params[prefix_bn + 'moving_var'] = mx.nd.ones(shape=self.aux_shape_dict[prefix_bn + 'moving_var'])
+
+
     def init_weight(self, cfg, arg_params, aux_params):
         self.init_weight_simple_baseline(cfg, arg_params, aux_params)
+        if cfg.network.pretrained == '':
+            self.init_weight_backbone(cfg, arg_params, aux_params)
