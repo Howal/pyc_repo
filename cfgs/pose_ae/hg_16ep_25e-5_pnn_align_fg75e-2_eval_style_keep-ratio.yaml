@@ -18,7 +18,7 @@ pose:
   - 128
   param_init: 'msra'
   bottom_up_loss: false
-  max_proposals: 1000
+  max_proposals: 1100
   fg_proposals: 4
   bg_proposals: 12
   append_gt: true
