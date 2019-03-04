@@ -1,0 +1,95 @@
+---
+#mxnet use docker philly/jobs/test/mxnet v131_py27_cuda9_zeliu
+MXNET_VERSION: "mxnet_1.3.1_master"
+output_path: "./output/pose/coco"
+symbol: posenet_v1_hourglass4_relation_cat
+gpus: '0,1,2,3'
+class_agnostic: false
+frequent: 10
+kvstore: device
+rng_seed: 3
+pose:
+  AUG_TYPE: 'AE'
+  SCALES:
+  - 512
+  - 512
+  SCALES_OUT:
+  - 128
+  - 128
+  head_num: 1
+  top_k: 25
+  sensitive_dim: 64
+  aff_dim: 64
+  val_dim: 64
+  param_init: 'msra'
+network:
+  pretrained: ""
+  pretrained_epoch: 0
+  PIXEL_MEANS:
+  - 103.06
+  - 115.90
+  - 123.15
+  PIXEL_STDS:
+  - 57.375
+  - 57.12
+  - 58.395
+  IMAGE_STRIDE: 0
+  use_bn_type: False
+dataset:
+  use_zip: true
+  ignore_posedb_cache: false
+  dataset: coco_pose
+  dataset_path: "/hdfs/nextmsra/hanhu/data/coco"
+#  dataset_path: "../../data_local/coco"
+  image_set: train
+#  image_set: test_dev
+  root_path: "./"
+#  root_path: "../../data_local"
+  test_image_set: test_dev
+  NUM_PARTS: 17
+  MAX_PERSONS: 30
+TRAIN:
+  lr: 0.000025
+  lr_step: '12, 15'
+  lr_factor: 0.1
+  warmup: false
+  warmup_lr: 0.0
+  warmup_method: 'linear'
+  # typically we will use 8000 warmup step for single GPU for COCO
+  warmup_step: 500
+  wd: 0.0
+  begin_epoch: 0
+  end_epoch: 16
+  model_prefix: 'pose_coco'
+  # whether resume training
+  AUTO_RESUME: false
+  RESUME: false
+  # whether flip image
+  FLIP: true
+  # whether shuffle image
+  SHUFFLE: false
+  # size of images for each device, 2 for rcnn, 1 for rpn and e2e
+  BATCH_IMAGES: 4
+  FP16: false
+  FP16_GRAD_SCALE: 128.0
+  GPU_METRIC: true
+TEST:
+  # use rpn to generate proposal
+  has_rpn: true
+  # size of images for each device
+  BATCH_IMAGES: 1
+  # RPN proposal
+  CXX_PROPOSAL: true
+  RPN_NMS_THRESH: 0.7
+  RPN_PRE_NMS_TOP_N: 6000
+  RPN_POST_NMS_TOP_N: 1000
+  RPN_MIN_SIZE: 0
+  # RPN generate proposal
+  PROPOSAL_NMS_THRESH: 0.7
+  PROPOSAL_PRE_NMS_TOP_N: 12000
+  PROPOSAL_POST_NMS_TOP_N: 2000
+  PROPOSAL_MIN_SIZE: 0
+  # RCNN nms
+  NMS: 0.5
+  test_epoch: 16
+  max_per_image: 100

@@ -3,8 +3,6 @@ import numpy as np
 from common.lib.utils.symbol import Symbol
 from common.backbone.hourglass_v1 import get_stacked_hourglass, conv_sym_wrapper, CurrentBN
 from common.gpu_metric import *
-from common.operator_py.a_loss import *
-from common.operator_py.d_loss import *
 from common.operator_py.monitor_op import *
 
 class posenet_v1_hourglass4(Symbol):

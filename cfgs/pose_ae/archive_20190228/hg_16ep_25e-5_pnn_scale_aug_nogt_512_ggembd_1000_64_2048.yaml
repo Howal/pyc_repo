@@ -1,0 +1,98 @@
+---
+#mxnet use docker philly/jobs/test/mxnet v131_py27_cuda9_zeliu
+MXNET_VERSION: "mxnet_1.3.1_feature_selection"
+output_path: "./output/pose/coco"
+symbol: posenet_v1_hourglass4_pnn_align_google_embd
+gpus: '0,1,2,3'
+class_agnostic: false
+frequent: 10
+kvstore: device
+rng_seed: 3
+pose:
+  AUG_TYPE: 'AE'
+  SCALES:
+  - 512
+  - 512
+  SCALES_OUT:
+  - 128
+  - 128
+  param_init: 'msra'
+  bottom_up_loss: false
+  max_proposals: 1000
+  append_gt: false
+  pose_fg_thresh: 0.75
+  part_fg_thresh: 0.75
+  oks_scale_type: 'box_area'
+  eval_style: true
+  google_embed_wave_length: 1000
+  google_embed_dim: 64
+  google_embed_fc_dim: 2048
+network:
+  pretrained: ""
+  pretrained_epoch: 0
+  PIXEL_MEANS:
+  - 103.06
+  - 115.90
+  - 123.15
+  PIXEL_STDS:
+  - 57.375
+  - 57.12
+  - 58.395
+  IMAGE_STRIDE: 0
+  use_bn_type: False
+  ind_det_loss: true
+dataset:
+  use_zip: true
+  ignore_posedb_cache: false
+  dataset: coco_pose
+  dataset_path: "/hdfs/nextmsra/hanhu/data/coco"
+#  dataset_path: "../../data_local/coco"
+  image_set: train
+#  image_set: test_dev
+  root_path: "./"
+#  root_path: "../../data_local"
+  proposal _folder: "/hdfs/nextmsra/zhez/proposal/train_84_test_83_n30/"
+#  proposal_folder: "./proposal/train_84_test_83_n30/"
+  test_image_set: test_dev
+  NUM_PARTS: 17
+  MAX_PERSONS: 30
+TRAIN:
+  lr: 0.000025
+  lr_step: '12, 15'
+  lr_factor: 0.1
+  warmup: false
+  warmup_lr: 0.0
+  warmup_method: 'linear'
+  # typically we will use 8000 warmup step for single GPU for COCO
+  warmup_step: 500
+  wd: 0.0
+  begin_epoch: 0
+  end_epoch: 16
+  model_prefix: 'pose_coco'
+  # whether resume training
+  AUTO_RESUME: false
+  RESUME: false
+  LOAD_STATE: false
+  # whether flip imag
+  FLIP: true
+  # whether shuffle image
+  SHUFFLE: false
+  # size of images for each device, 2 for rcnn, 1 for rpn and e2e
+  BATCH_IMAGES: 4
+  FP16: false
+  FP16_GRAD_SCALE: 128.0
+  GPU_METRIC: true
+  AUG_METHOD: 'SCALE_ONLY'
+TEST:
+  # use rpn to generate proposal
+  has_rpn: true
+  # size of images for each device
+  BATCH_IMAGES: 1
+  # PNN nms
+  NMS: 0.3
+  part_bg_th: 0.0
+  bg_th: 0.0
+  final_score_method: 'add_fusion'
+  pose_weight: 1.0
+  test_epoch: 16
+  max_per_image: 100

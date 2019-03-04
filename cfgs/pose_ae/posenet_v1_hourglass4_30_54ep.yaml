@@ -3,12 +3,12 @@
 MXNET_VERSION: "mxnet_1.3.1_master"
 output_path: "./output/pose/coco"
 symbol: posenet_v1_hourglass4
-gpus: '0,1,2,3,4,5,6,7'
+gpus: '0,1,2,3'
 class_agnostic: false
 frequent: 100
 kvstore: device
 rng_seed: 3
-pose_aug:
+pose:
   AUG_TYPE: 'AE'
   SCALES:
   - 512
@@ -43,10 +43,11 @@ dataset:
   use_zip: true
   ignore_posedb_cache: false
   dataset: coco_pose
-  dataset_path: "./data/coco"
+#  dataset_path: "/hdfs/nextmsra/hanhu/data/coco"
+  dataset_path: "../../data_local/coco"
   image_set: train
 #  image_set: test_dev
-  root_path: "."
+  root_path: "../../"
   test_image_set: test_dev
   NUM_PARTS: 17
   MAX_PERSONS: 30
